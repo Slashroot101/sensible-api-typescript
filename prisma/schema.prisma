@@ -1,0 +1,102 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model DiscordUser {
+  id  Int @id @default(autoincrement())
+  discordSnowflake  String @unique
+  ruleWarnings DiscordGuildRuleWarning[] @relation(name: "warnings")
+  expungedUsers DiscordGuildRuleWarning[]
+  messages Message[]
+}
+
+model DiscordGuild {
+  id  Int @id @default(autoincrement())
+  discordSnowflake  String  @unique
+  message Message[]
+  blacklist DiscordGuildBlacklist[]
+  rules DiscordGuildRule[]
+}
+
+model BlacklistMessage {
+  id  Int @id @default(autoincrement())
+  message Message @relation(fields: [messageId], references: [id]) 
+  messageId Int @unique
+}
+
+model DiscordGuildActionTier {
+  id  Int @id @default(autoincrement())
+  maxOffenses Int
+  discordGuildRule DiscordGuildRule @relation(fields:[discordGuildRuleId], references: [id])
+  discordGuildRuleId Int 
+  ruleAction RuleAction @relation(fields:[ruleActionId], references: [id])
+  ruleActionId Int
+}
+
+model DiscordGuildBlacklist {
+  id  Int @id @default(autoincrement())
+  word String
+  discordGuild DiscordGuild @relation(fields: [discordGuildId], references: [id])
+  discordGuildId Int
+}
+
+model DiscordGuildRule {
+  id  Int @id @default(autoincrement())
+  actionTier DiscordGuildActionTier[]
+  ruleWarning DiscordGuildRuleWarning[]
+  enabled Boolean
+  discordGuild DiscordGuild @relation(fields: discordGuildId, references: [id])
+  discordGuildId Int
+  rule Rule @relation(fields: ruleId, references: [id])
+  ruleId Int 
+  ruleAction RuleAction @relation(fields: ruleActionId, references: [id])
+  ruleActionId Int 
+}
+
+model DiscordGuildRuleWarning {
+  id  Int @id @default(autoincrement())
+  isExpunged Boolean
+  discordGuildRule DiscordGuildRule @relation(fields: discordGuildRuleId, references: [id])
+  discordGuildRuleId Int
+  message Message @relation(fields: messageId, references: [id])
+  messageId Int @unique
+  discordUser DiscordUser @relation(name: "warnings",fields: discordUserId, references: [id])
+  discordUserId Int
+  expunged DiscordUser @relation(fields: expungedBy, references: [id])
+  expungedBy Int
+}
+
+model Message {
+  id  Int @id @default(autoincrement())
+  blacklistMessage BlacklistMessage?
+  ruleWarnings DiscordGuildRuleWarning[]
+  discordUser DiscordUser @relation(fields: discordUserId, references: [id])
+  discordUserId Int
+  discordGuild DiscordGuild @relation(fields: discordGuildId, references: [id])
+  discordGuildId Int
+  message String
+  sentiment Decimal
+  comparitive Decimal
+  messageSnowflake String
+}
+
+model Rule {
+  id  Int @id @default(autoincrement())
+  discordGuildRules DiscordGuildRule[]
+  name String @unique
+}
+
+model RuleAction {
+  id  Int @id @default(autoincrement())
+  actionTiers DiscordGuildActionTier[]
+  discordGuildRules DiscordGuildRule[]
+  name String @unique
+}
