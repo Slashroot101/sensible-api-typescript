@@ -70,8 +70,8 @@ model DiscordGuildRuleWarning {
   messageId Int @unique
   discordUser DiscordUser @relation(name: "warnings",fields: discordUserId, references: [id])
   discordUserId Int
-  expunged DiscordUser @relation(fields: expungedBy, references: [id])
-  expungedBy Int
+  expunged DiscordUser? @relation(fields: expungedBy, references: [id])
+  expungedBy Int?
 }
 
 model Message {
@@ -85,7 +85,7 @@ model Message {
   message String
   sentiment Decimal
   comparitive Decimal
-  messageSnowflake String
+  messageSnowflake String @unique
 }
 
 model Rule {

@@ -24,21 +24,27 @@ export default function(fastify: FastifyInstance, opts: FastifyPluginOptions, do
       Body: RuleWarningType;
     }>, reply): Promise<any> {
       logger.debug(`Received patch request for [ruleId=${req.params.warningId}]`);
-      const warning = await database.discordGuildRuleWarning.findFirst({where:{id: req.params.warningId}});
-
-      if(warning){
-        return {warning};
-      }
 
       return {warning: await database.discordGuildRuleWarning.update({where: {id: req.params.warningId}, data: req.body})};
     });
+
+    fastify.put<{Params: {warningId: number;}}>('/:warningId/expunge', async function (req: FastifyRequest<{
+      Params: {
+        warningId: number;
+      };
+    }>, reply): Promise<any> {
+      logger.debug(`Received expunge put request for [ruleId=${req.params.warningId}]`);
+
+      return {warning: await database.discordGuildRuleWarning.update({where: {id: Number(req.params.warningId)}, data: {isExpunged: true}})};
+    });
+
 
     fastify.get('/', {}, async function(req: FastifyRequest<{Querystring: {discordUserId: number}}>, reply): Promise<any> {
       logger.debug(`Received query request for rule warnings with query ${JSON.stringify(req.query)}`);
       const {discordUserId} = req.query;
 
-      const warnings = await database.discordGuildRuleWarning.findMany({where: {discordUserId: Number(discordUserId)}});
-
+      const warnings = await database.discordGuildRuleWarning.findMany({where: {discordUserId: Number(discordUserId)}, include: {discordGuildRule: { include: {rule: true}}}});
+      console.log(warnings)
       return {warnings};
     });
 
