@@ -1,0 +1,19 @@
+
+apiVersion: v1
+kind: Service
+metadata:
+  name: nats # Sets service name
+  labels:
+    app: nats # Labels and Selectors
+spec:
+  type: NodePort # Sets service type
+  ports:
+    - name: connection
+      port: 4222 # Sets port to run the postgres application
+      nodePort: 30008
+    - name: http 
+      port: 8222 # Sets port to run the postgres application
+    - name: cluster
+      port: 6222 # Sets port to run the postgres application
+  selector:
+    app: nats

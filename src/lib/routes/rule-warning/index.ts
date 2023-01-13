@@ -14,7 +14,7 @@ export default function(fastify: FastifyInstance, opts: FastifyPluginOptions, do
       logger.debug(`Received create request for [ruleId=${req.params.discordGuildRuleId}]`);
       const createdWarning = await database.discordGuildRuleWarning.create({data: req.body,});
 
-      return {createdWarning};
+      return {warning: createdWarning};
   });
 
   fastify.patch<{Body: RuleWarningType, Reply: RuleWarningType, Params: {warningId: number;}}>('/:warningId', {schema: {body: RuleWarning}}, async function (req: FastifyRequest<{
@@ -44,7 +44,6 @@ export default function(fastify: FastifyInstance, opts: FastifyPluginOptions, do
       const {discordUserId} = req.query;
 
       const warnings = await database.discordGuildRuleWarning.findMany({where: {discordUserId: Number(discordUserId)}, include: {discordGuildRule: { include: {rule: true}}}});
-      console.log(warnings)
       return {warnings};
     });
 

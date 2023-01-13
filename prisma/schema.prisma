@@ -16,14 +16,19 @@ model DiscordUser {
   ruleWarnings DiscordGuildRuleWarning[] @relation(name: "warnings")
   expungedUsers DiscordGuildRuleWarning[]
   messages Message[]
+  tickets Ticket[]
+  ticketMessage TicketMessage[]
 }
 
 model DiscordGuild {
   id  Int @id @default(autoincrement())
   discordSnowflake  String  @unique
+  ticketCategoryId String?
+  ticketCreationChannelId String?
   message Message[]
   blacklist DiscordGuildBlacklist[]
   rules DiscordGuildRule[]
+  ticket Ticket[]
 }
 
 model BlacklistMessage {
@@ -99,4 +104,42 @@ model RuleAction {
   actionTiers DiscordGuildActionTier[]
   discordGuildRules DiscordGuildRule[]
   name String @unique
+}
+
+model Ticket {
+  id  Int @id @default(autoincrement())
+  submittedByUser DiscordUser @relation(fields: submittedByUserId, references: [id])
+  submittedByUserId Int
+  discordGuild DiscordGuild @relation(fields: discordGuildId, references: [id])
+  discordGuildId Int
+  discordChannelSnowflake String
+  description String
+  status TicketStatus
+  ticketMessage TicketMessage[]
+}
+
+model TicketMessage {
+  id  Int @id @default(autoincrement())
+  message String
+  messageCreationDate DateTime
+  messageSnowflake String
+  photoMessage PhotoMessage[]
+  discordUser DiscordUser @relation(fields: discordUserId, references: [id])
+  discordUserId Int
+  ticket Ticket @relation(fields: ticketId, references: [id])
+  ticketId Int
+}
+
+model PhotoMessage {
+  id  Int @id @default(autoincrement())
+  fileName String
+  size Int
+  hash String
+  ticketMessage TicketMessage @relation(fields: ticketMessageId, references: [id])
+  ticketMessageId Int
+}
+
+enum TicketStatus {
+  Open
+  Resolved
 }
