@@ -24,6 +24,22 @@ export default async (err: NatsError | null, msg: Msg): Promise<void> => {
 
     return;
   }
+
+  //check and see if user is in ticket channel
+  const ticket = await database.ticket.findFirst({where: {discordChannelSnowflake: parsedMessage.channel}});
+  if(ticket){
+    logger.debug(`Found ticket for [ticketId=${ticket.id}], creating ticket message`);
+    await database.ticketMessage.create({data: {
+      message: parsedMessage.msg,
+      messageCreationDate: parsedMessage.messageCreationDate,
+      messageSnowflake: parsedMessage.messageId,
+      discordUserId: parsedMessage.user.id,
+      ticketId: ticket.id,
+    }});
+
+    return;
+  }
+
   const rules = await database.discordGuildRule.findMany({include: {rule: true, ruleAction: true}, where: {discordGuildId: parsedMessage.guild.id, enabled: true}});
   const mappedRules = rules?.map(x => {
     const rule = x;
@@ -63,7 +79,7 @@ export default async (err: NatsError | null, msg: Msg): Promise<void> => {
       }
   });
 
-  const anyPunishments = actions.filter(x => 'swearing' in x && x['swearing']!.contains === true || 'blacklist' in x && x['blacklist']!.contains === true || 'sentiment' in x && x['sentiment']!.contains === true )
+  const anyPunishments = actions.filter(x => 'swearing' in x && x['swearing']!.contains === true || 'blacklist' in x && x['blacklist']!.contains === true || 'sentiment' in x && x['sentiment']!.contains === true);
   if(anyPunishments.length){
       nats.publish('punish', Buffer.from(JSON.stringify({...parsedMessage, punishments: actions})));
   }

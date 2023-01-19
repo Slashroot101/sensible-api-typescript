@@ -113,7 +113,7 @@ model Ticket {
   discordGuild DiscordGuild @relation(fields: discordGuildId, references: [id])
   discordGuildId Int
   discordChannelSnowflake String
-  description String
+  reason String?
   status TicketStatus
   ticketMessage TicketMessage[]
 }

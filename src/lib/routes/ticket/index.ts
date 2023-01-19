@@ -18,22 +18,20 @@ export default function(fastify: FastifyInstance, opts: FastifyPluginOptions, do
 
   fastify.get('/', {}, async function (req: FastifyRequest<{Querystring: TicketQuery}>, reply): Promise<any> {
     logger.debug(`Received query request for tickets with query ${JSON.stringify(req.query)}`);
-    const {discordGuildId, submittedByUserId, status} = req.query;
 
 
-    const tickets = await database.ticket.findMany({where: {discordGuildId, submittedByUserId, status: TicketStatus[status]}});
+    const tickets = await database.ticket.findMany({where: req.query});
 
     return {tickets};
   });
 
-  fastify.put('/:id', {schema: TicketStatusUpdate}, async function (req: FastifyRequest<{Body: {status: TicketStatus}, Params: {id: number}}>, reply){
+  fastify.put('/:id', {schema: TicketStatusUpdate}, async function (req: FastifyRequest<{Body: {status: TicketStatus, reason: string}, Params: {id: number}}>, reply){
     logger.debug(`Received update request for ticketId=${req.params.id}`);
 
-    const ticket = await database.ticket.update({where: {id: req.params.id}, data: {status: req.body.status}});
+    const ticket = await database.ticket.update({where: {id: req.params.id}, data: req.body});
 
     return {ticket};
   });
 
-  
   done();
 }

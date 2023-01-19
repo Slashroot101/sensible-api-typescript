@@ -11,8 +11,9 @@ export type MessageCreateEvent = {
   guild: DiscordGuild;
   user: DiscordUser;
   msg: string;
-  channel: number;
+  channel: string;
   messageId: string;
+  messageCreationDate: Date;
 }
 
 export type RuleActionFlagMap = {
