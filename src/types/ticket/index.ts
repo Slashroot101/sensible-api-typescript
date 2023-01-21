@@ -8,6 +8,7 @@ export const Ticket = Type.Object({
   discordChannelSnowflake: Type.String(),
   status: Type.Enum(TicketStatus),
   reason: Type.Optional(Type.String()),
+  correlationId: Type.Optional(Type.String()),
 });
 
 export const TicketStatusUpdate = Type.Object({
@@ -23,7 +24,7 @@ export type TicketQuery = {
   submittedByUserId: number;
   discordGuildId: number;
   discordChannelSnowflake: string;
-  status: 'Open' | 'Resolved';
+  status: 'Open' | 'Resolved' | 'Pending';
 }
 
 

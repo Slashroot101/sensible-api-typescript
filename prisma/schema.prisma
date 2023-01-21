@@ -115,6 +115,7 @@ model Ticket {
   discordChannelSnowflake String
   reason String?
   status TicketStatus
+  correlationId String?
   ticketMessage TicketMessage[]
 }
 
@@ -142,4 +143,5 @@ model PhotoMessage {
 enum TicketStatus {
   Open
   Resolved
+  Pending
 }

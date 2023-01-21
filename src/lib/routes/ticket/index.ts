@@ -25,10 +25,18 @@ export default function(fastify: FastifyInstance, opts: FastifyPluginOptions, do
     return {tickets};
   });
 
+  fastify.put('/:id/correlation', {schema: TicketStatusUpdate}, async function (req: FastifyRequest<{Body: {correlationId: string}, Params: {id: number}}>, reply){
+    logger.debug(`Received correlation update request for ticketId=${req.params.id}`);
+
+    const ticket = await database.ticket.update({where: {id: Number(req.params.id)}, data: {correlationId: req.body.correlationId}});
+
+    return {ticket};
+  });
+
   fastify.put('/:id', {schema: TicketStatusUpdate}, async function (req: FastifyRequest<{Body: {status: TicketStatus, reason: string}, Params: {id: number}}>, reply){
     logger.debug(`Received update request for ticketId=${req.params.id}`);
 
-    const ticket = await database.ticket.update({where: {id: req.params.id}, data: req.body});
+    const ticket = await database.ticket.update({where: {id: Number(req.params.id)}, data: {status: req.body.status, reason: req.body.reason}});
 
     return {ticket};
   });
