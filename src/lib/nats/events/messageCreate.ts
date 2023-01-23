@@ -72,7 +72,11 @@ export default async (err: NatsError | null, msg: Msg): Promise<void> => {
       }
 
       if(discordGuildRuleId) {
-        const savedMessage = await database.message.create({data: {message: parsedMessage.msg, messageSnowflake: parsedMessage.messageId, discordUserId: parsedMessage.user.id, discordGuildId: parsedMessage.guild.id, sentiment: 1, comparitive: 1, }});
+        let userGuild = await database.userGuilds.findFirst({where: {discordGuildId: parsedMessage.guild.id, discordUserId: parsedMessage.user.id}});
+        if(!userGuild){
+          userGuild = await database.userGuilds.create({data: {discordGuildId: parsedMessage.guild.id, discordUserId: parsedMessage.user.id, isAdmin: false}});
+        }
+        const savedMessage = await database.message.create({data: {message: parsedMessage.msg, messageSnowflake: parsedMessage.messageId, sentiment: 1, comparitive: 1, userGuildId: userGuild.id}});
         await database.discordGuildRuleWarning.create({ data: { isExpunged: false, discordGuildRuleId: discordGuildRuleId, messageId: savedMessage.id, discordUserId: parsedMessage.user.id } });  
       } else {
         logger.warn(`No discordRuleId found for punishment ${parsedMessage}`);

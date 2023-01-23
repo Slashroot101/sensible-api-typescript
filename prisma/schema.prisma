@@ -15,9 +15,30 @@ model DiscordUser {
   discordSnowflake  String @unique
   ruleWarnings DiscordGuildRuleWarning[] @relation(name: "warnings")
   expungedUsers DiscordGuildRuleWarning[]
-  messages Message[]
-  tickets Ticket[]
   ticketMessage TicketMessage[]
+  authSession AuthSession[]
+  userGuilds UserGuilds[]
+}
+
+model UserGuilds {
+  id  Int @id @default(autoincrement())
+  discordUser DiscordUser @relation(fields:[discordUserId], references: [id])
+  discordUserId Int
+  discordGuild DiscordGuild @relation(fields:[discordGuildId], references: [id])
+  discordGuildId Int
+  isAdmin Boolean
+  ticket Ticket[]
+  messages Message[]
+}
+
+model AuthSession {
+  id  Int @id @default(autoincrement())
+  accessToken String
+  tokenType String
+  expiresAt DateTime
+  opaqueToken String
+  user DiscordUser @relation(fields: [userId], references: [id])
+  userId Int
 }
 
 model DiscordGuild {
@@ -25,10 +46,9 @@ model DiscordGuild {
   discordSnowflake  String  @unique
   ticketCategoryId String?
   ticketCreationChannelId String?
-  message Message[]
   blacklist DiscordGuildBlacklist[]
   rules DiscordGuildRule[]
-  ticket Ticket[]
+  userGuilds UserGuilds[]
 }
 
 model BlacklistMessage {
@@ -83,10 +103,8 @@ model Message {
   id  Int @id @default(autoincrement())
   blacklistMessage BlacklistMessage?
   ruleWarnings DiscordGuildRuleWarning[]
-  discordUser DiscordUser @relation(fields: discordUserId, references: [id])
-  discordUserId Int
-  discordGuild DiscordGuild @relation(fields: discordGuildId, references: [id])
-  discordGuildId Int
+  userGuild UserGuilds @relation(fields: [userGuildId], references: [id])
+  userGuildId Int
   message String
   sentiment Decimal
   comparitive Decimal
@@ -108,10 +126,8 @@ model RuleAction {
 
 model Ticket {
   id  Int @id @default(autoincrement())
-  submittedByUser DiscordUser @relation(fields: submittedByUserId, references: [id])
-  submittedByUserId Int
-  discordGuild DiscordGuild @relation(fields: discordGuildId, references: [id])
-  discordGuildId Int
+  userGuild UserGuilds @relation(fields: userGuildId, references: [id])
+  userGuildId Int
   discordChannelSnowflake String
   reason String?
   status TicketStatus

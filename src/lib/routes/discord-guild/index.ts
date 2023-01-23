@@ -1,4 +1,5 @@
-import { FastifyInstance, FastifyPluginOptions, FastifyRequest } from "fastify";
+import Axios from "axios";
+import { FastifyInstance, FastifyPluginOptions, FastifyReply, FastifyRequest } from "fastify";
 import { DiscordGuild, DiscordGuildQuery, DiscordGuildType, DiscordTicketCategoryId, DiscordTicketCategoryIdType, DiscordTicketCreationId, DiscordTicketCreationIdType } from "../../../types/discordGuild";
 import database from "../../database";
 import logger from "../../logger";
@@ -36,6 +37,13 @@ export default async (fastify: FastifyInstance, opts: FastifyPluginOptions, done
     const discordGuilds = await database.discordGuild.findMany({where: {discordSnowflake}});
 
     return {discordGuilds};
+  });
+
+  fastify.get<{Params: {userId: number}}>('/discord-user/:userId/admin', {}, async (req: FastifyRequest<{Params: {userId: number}}>, reply): Promise<any> => {
+    logger.debug(`Executing admin list for user [discordUserId=${req.params.userId}]`);
+    const adminGuilds = await database.userGuilds.findMany({where: {discordUserId: req.params.userId}, include: {discordGuild: true}});
+
+    return {discordGuilds: adminGuilds};
   });
 
   done();

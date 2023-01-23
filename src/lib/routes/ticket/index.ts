@@ -10,7 +10,7 @@ export default function(fastify: FastifyInstance, opts: FastifyPluginOptions, do
   fastify.post<{Body: TicketType, Reply: TicketType}>('/', {schema: {body: Ticket}}, async function (req: FastifyRequest<{
     Body: TicketType
   }>): Promise<any> {
-    logger.debug(`Received create request for [userId=${req.body.submittedByUserId}]/[discordGuildId=${req.body.discordGuildId}]/[channelSnowflake=${req.body.discordChannelSnowflake}]`);
+    logger.debug(`Received create request for [userId=${req.body.userGuildId}]/[channelSnowflake=${req.body.discordChannelSnowflake}]`);
     const createdTicket = await database.ticket.create({data: req.body});
 
     return {ticket: createdTicket};
