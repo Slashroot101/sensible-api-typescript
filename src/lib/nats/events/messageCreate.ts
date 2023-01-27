@@ -40,7 +40,7 @@ export default async (err: NatsError | null, msg: Msg): Promise<void> => {
     return;
   }
 
-  const rules = await database.discordGuildRule.findMany({include: {rule: true, ruleAction: true}, where: {discordGuildId: parsedMessage.guild.id, enabled: true}});
+  const rules = await database.discordGuildRule.findMany({include: {rule: true, ruleAction: true,}, where: {discordGuildId: parsedMessage.guild.id, enabled: true}});
   const mappedRules = rules?.map(x => {
     const rule = x;
     return {enabled: rule.enabled, ruleName: rule.rule.name, ruleAction: rule.ruleAction, guildRuleId: rule.id};
@@ -77,7 +77,7 @@ export default async (err: NatsError | null, msg: Msg): Promise<void> => {
           userGuild = await database.userGuilds.create({data: {discordGuildId: parsedMessage.guild.id, discordUserId: parsedMessage.user.id, isAdmin: false}});
         }
         const savedMessage = await database.message.create({data: {message: parsedMessage.msg, messageSnowflake: parsedMessage.messageId, sentiment: 1, comparitive: 1, userGuildId: userGuild.id}});
-        await database.discordGuildRuleWarning.create({ data: { isExpunged: false, discordGuildRuleId: discordGuildRuleId, messageId: savedMessage.id, discordUserId: parsedMessage.user.id } });  
+        await database.discordGuildRuleWarning.create({ data: { isExpunged: false, discordGuildRuleId: discordGuildRuleId, messageId: savedMessage.id, discordUserId: parsedMessage.user.id, createdAt: new Date() } });  
       } else {
         logger.warn(`No discordRuleId found for punishment ${parsedMessage}`);
       }

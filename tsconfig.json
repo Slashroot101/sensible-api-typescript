@@ -8,6 +8,8 @@
     "rootDir": "src",
     "strict": true,         
     "noImplicitAny": true,
+    "typeRoots": ["node_modules/@types", "@types", "/src/**/*.d.ts"],
+    "types": ["@types/node"],
     "esModuleInterop": true,
     "resolveJsonModule": true
   }

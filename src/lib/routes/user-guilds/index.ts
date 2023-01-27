@@ -1,13 +1,14 @@
-import { TicketStatus, UserGuilds } from "@prisma/client";
-import Axios, { AxiosResponse } from "axios";
+import { UserGuilds } from "@prisma/client";
+import Axios from "axios";
 import { FastifyInstance, FastifyPluginOptions, FastifyRequest } from "fastify";
-import { Ticket, TicketQuery, TicketStatusUpdate, TicketType } from "../../../types/ticket";
-import { UserGuild, UserGuildCardsParams, UserGuildGetParams, UserGuildQuery, UserGuildType } from "../../../types/userGuild";
+import { UserGuild, UserGuildGetParams, UserGuildQuery, UserGuildType } from "../../../types/userGuild";
 import database from "../../database";
 import logger from "../../logger";
 import {APIGuild} from 'discord-api-types/v10';
 import config from "../../config";
 import {forEach} from 'p-iteration';
+import jwt from 'jsonwebtoken';
+import { DecodedJwt } from "../../../types/jwt";
 
 export default function(fastify: FastifyInstance, opts: FastifyPluginOptions, done: any){
   logger.debug('Loading UserGuilds routes');
@@ -40,24 +41,24 @@ export default function(fastify: FastifyInstance, opts: FastifyPluginOptions, do
     return {userGuilds};
   });
 
-  fastify.get<{Params: {id: number}}>('/discord-user/:id/cards', {schema: {params: UserGuildCardsParams}}, async function(req: FastifyRequest<{Params: {id: number}}>, reply): Promise<any> {
-    logger.debug(`Executing card query for user [discordUserId=${req.params.id}]`);
-    const userGuilds = await database.userGuilds.findMany({where: {discordUserId: req.params.id, isAdmin: true}, include: {discordGuild: true}});
-    console.log(userGuilds)
+  fastify.get('/cards', {preValidation: [fastify.auth([fastify.verifyJwt])]}, async function(req: FastifyRequest, reply): Promise<any> {
+    const token = jwt.decode(req.headers['authorization']!) as DecodedJwt;
+    logger.debug(`Executing card query for user [discordUserId=${token.id}]`);
+    const userGuilds = await database.userGuilds.findMany({where: {discordUserId: token.id, isAdmin: true}, include: {discordGuild: true}});
     const guilds: {}[] = [];
 
-    logger.trace(`Beginning guild info card query to Discord API [userId=${req.params.id}]`);
+    logger.trace(`Beginning guild info card query to Discord API [userId=${token.id}]`);
     await forEach(userGuilds, async guild => {
       logger.trace(`Grabbing guild [discordGuildId=${guild.id}]`);
       const {data} = await Axios.get<APIGuild>(`${config.discordApiUrl}/guilds/${guild.discordGuild.discordSnowflake}`, {
         headers: {'Authorization': `Bot ${config.discordToken}`},
       });
-      logger.trace({msg: `Received guild [discordGuildId=${guild.id}]`, data});
+      logger.trace({msg: `Received guild [discordGuildId=${guild.id}]`});
       guilds.push({guildInfo: data as APIGuild, guild: guild as UserGuilds})
     });
-    logger.trace(`Completed guild info card query to Discord API [userId=${req.params.id}]`);
+    logger.trace(`Completed guild info card query to Discord API [userId=${token.id}]`);
     
-    return {guilds};
+    return {userGuilds: guilds,};
   });
 
   done();

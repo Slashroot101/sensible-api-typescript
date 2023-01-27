@@ -1,6 +1,7 @@
 import { TicketStatus } from "@prisma/client";
 import { FastifyInstance, FastifyPluginOptions, FastifyRequest } from "fastify";
-import { Ticket, TicketQuery, TicketStatusUpdate, TicketType } from "../../../types/ticket";
+import { Ticket, TicketGuildListParams, TicketGuildListQuery, TicketQuery, TicketStatusUpdate, TicketType } from "../../../types/ticket";
+import validateUserGuildAccess from "../../businessLogic/validateUserGuildAccess";
 import database from "../../database";
 import logger from "../../logger";
 
@@ -11,14 +12,39 @@ export default function(fastify: FastifyInstance, opts: FastifyPluginOptions, do
     Body: TicketType
   }>): Promise<any> {
     logger.debug(`Received create request for [userId=${req.body.userGuildId}]/[channelSnowflake=${req.body.discordChannelSnowflake}]`);
-    const createdTicket = await database.ticket.create({data: req.body});
+    const createdTicket = await database.ticket.create({data: {...req.body, createdAt: new Date()}});
 
     return {ticket: createdTicket};
   });
 
+  fastify.get<{Params: {guildId: number}}>('/discord-guild/:guildId', {schema: {params: TicketGuildListParams, querystring: TicketGuildListQuery}, preValidation: [fastify.auth([fastify.verifyJwt])]}, async function(req: FastifyRequest<{Params: {guildId: number}}>, reply): Promise<any> {
+    logger.debug(`Getting list of tickets for guildId=${req.params.guildId}`);
+    try {
+      await validateUserGuildAccess(req.headers.authorization!, req.params.guildId);
+    } catch (err: any) {
+      return reply.status(401).send({msg: 'You do not have access to that guild'});
+    }
+
+    const query = req.query as any;
+    const ticketQuery = {} as {id: number};
+
+    if(query.id){
+      ticketQuery.id = query.id;
+    }
+
+    const discordUserQuery = {} as {discordUserId: number};
+
+    if(query.discordUserId){
+      discordUserQuery.discordUserId = query.discordUserId;
+    }
+
+    const tickets = await database.ticket.findMany({where: {...ticketQuery, status: TicketStatus.Resolved, userGuild: {...discordUserQuery, discordGuildId: req.params.guildId}}, include: {userGuild: true}, take: 15});
+
+    return {tickets};
+  });
+
   fastify.get('/', {}, async function (req: FastifyRequest<{Querystring: TicketQuery}>, reply): Promise<any> {
     logger.debug(`Received query request for tickets with query ${JSON.stringify(req.query)}`);
-
 
     const tickets = await database.ticket.findMany({where: req.query});
 

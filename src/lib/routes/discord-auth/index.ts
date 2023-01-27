@@ -3,9 +3,8 @@ import { DiscordAuth, DiscordAuthType } from "../../../types/discordAuth";
 import logger from "../../logger";
 import config from "../../config";
 import Axios from 'axios';
-import redis from "../../redis";
 import database from "../../database";
-import { randomUUID } from "crypto";
+import jwt from 'jsonwebtoken';
 
 export default async (fastify: FastifyInstance, opts: FastifyPluginOptions, done: any) => {
   logger.debug('Loading discord-auth routes');
@@ -34,16 +33,17 @@ export default async (fastify: FastifyInstance, opts: FastifyPluginOptions, done
       },
     });
 
-    const opaqueToken = randomUUID();
     let discordUser = await database.discordUser.findFirst({where: {discordSnowflake: user.data.id}});
-
+    
     if(!discordUser){
       discordUser = await database.discordUser.create({data: {discordSnowflake: user.data.id}});
     }
 
+    const opaqueToken = jwt.sign(discordUser, config.jwtSecret!);
+
     await database.authSession.create({data: {opaqueToken, accessToken: access_token, expiresAt, userId: discordUser!.id, tokenType: token_type}});
     
-    return {opaqueToken};
+    return {opaqueToken, discordUser};
   });
 
   done();

@@ -97,6 +97,8 @@ model DiscordGuildRuleWarning {
   discordUserId Int
   expunged DiscordUser? @relation(fields: expungedBy, references: [id])
   expungedBy Int?
+  expungedAt DateTime?
+  createdAt DateTime
 }
 
 model Message {
@@ -132,6 +134,7 @@ model Ticket {
   reason String?
   status TicketStatus
   correlationId String?
+  createdAt DateTime 
   ticketMessage TicketMessage[]
 }
 

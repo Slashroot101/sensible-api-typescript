@@ -15,4 +15,5 @@ export default {
   host: process.env.HOST,
   redisUrl: process.env.REDIS_URL,
   discordApiUrl: process.env.DISCORD_API_URL,
+  jwtSecret: process.env.JWT_SECRET,
 };
