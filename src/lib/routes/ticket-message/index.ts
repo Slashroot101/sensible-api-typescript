@@ -31,39 +31,41 @@ export default function(fastify: FastifyInstance, opts: FastifyPluginOptions, do
     const userGuild = await database.userGuilds.findFirst({where: {id: ticket?.userGuildId}});
 
     if(!userGuild) throw new Error('Guild not found');
-
-    validateUserGuildAccess(req.headers.authorization!, userGuild.id);
-
-    const ticketMessages = await database.ticketMessage.findMany({where: {ticketId: req.params.id}, orderBy: {messageCreationDate: 'asc'}});
-    const users: number[] = [];
-
-
-    const mappedMessages = ticketMessages.map(x => {
-      logger.trace(`Beginning message mapping for [ticketId=${ticket.id}]/[userGuildId=${userGuild.id}]/[messageId=${x.id}]`);
-      const ret = {...x} as TicketMessageTimelineItem;
-      if(!users.includes(x.discordUserId)) {
-        logger.trace(`Adding user [discordUserId=${x.discordUserId}] to user fetch array`);
-        users.push(x.discordUserId);
-      }
-      if(x.discordUserId !== userGuild.discordUserId){
-        logger.trace(`Setting side=${SideEnum.Right} for [messageId=${x.id}]`);
-        ret.side = SideEnum.Right;
-      } else {
-        logger.trace(`Setting side=${SideEnum.Left} for [messageId=${x.id}]`);
-        ret.side = SideEnum.Left;
-      }
-
-      return ret;
-    });
-
-    const userMap: {[key: string]: any} = {};
-
-    await forEach(users, async (userId) => {
-      const username = await getDiscordUserWithCache(userId);
-      userMap[userId] = {username};
-    });
-
-    return {ticketMessages: mappedMessages, users: userMap};
+    try {
+      await validateUserGuildAccess(req.headers.authorization!, userGuild.id);
+      const ticketMessages = await database.ticketMessage.findMany({where: {ticketId: req.params.id}, orderBy: {messageCreationDate: 'asc'}});
+      const users: number[] = [];
+  
+  
+      const mappedMessages = ticketMessages.map(x => {
+        logger.trace(`Beginning message mapping for [ticketId=${ticket.id}]/[userGuildId=${userGuild.id}]/[messageId=${x.id}]`);
+        const ret = {...x} as TicketMessageTimelineItem;
+        if(!users.includes(x.discordUserId)) {
+          logger.trace(`Adding user [discordUserId=${x.discordUserId}] to user fetch array`);
+          users.push(x.discordUserId);
+        }
+        if(x.discordUserId !== userGuild.discordUserId){
+          logger.trace(`Setting side=${SideEnum.Right} for [messageId=${x.id}]`);
+          ret.side = SideEnum.Right;
+        } else {
+          logger.trace(`Setting side=${SideEnum.Left} for [messageId=${x.id}]`);
+          ret.side = SideEnum.Left;
+        }
+  
+        return ret;
+      });
+  
+      const userMap: {[key: string]: any} = {};
+  
+      await forEach(users, async (userId) => {
+        const username = await getDiscordUserWithCache(userId);
+        userMap[userId] = {username};
+      });
+  
+      return {ticketMessages: mappedMessages, users: userMap};
+    } catch (err){
+      return reply.status(401).send({msg: 'You do not have access to that guild'});
+    }
   });
   
   done();

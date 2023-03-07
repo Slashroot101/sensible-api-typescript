@@ -18,6 +18,7 @@ model DiscordUser {
   ticketMessage TicketMessage[]
   authSession AuthSession[]
   userGuilds UserGuilds[]
+  resolvedTickets Ticket[]
 }
 
 model UserGuilds {
@@ -92,7 +93,7 @@ model DiscordGuildRuleWarning {
   discordGuildRule DiscordGuildRule @relation(fields: discordGuildRuleId, references: [id])
   discordGuildRuleId Int
   message Message @relation(fields: messageId, references: [id])
-  messageId Int @unique
+  messageId Int 
   discordUser DiscordUser @relation(name: "warnings",fields: discordUserId, references: [id])
   discordUserId Int
   expunged DiscordUser? @relation(fields: expungedBy, references: [id])
@@ -108,8 +109,8 @@ model Message {
   userGuild UserGuilds @relation(fields: [userGuildId], references: [id])
   userGuildId Int
   message String
-  sentiment Decimal
-  comparitive Decimal
+  sentiment Decimal?
+  comparitive Decimal?
   messageSnowflake String @unique
 }
 
@@ -133,6 +134,8 @@ model Ticket {
   discordChannelSnowflake String
   reason String?
   status TicketStatus
+  resolvedBy DiscordUser? @relation(fields: resolvedByUserId, references: [id])
+  resolvedByUserId Int?
   correlationId String?
   createdAt DateTime 
   ticketMessage TicketMessage[]

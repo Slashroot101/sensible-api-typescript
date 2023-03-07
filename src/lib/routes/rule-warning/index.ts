@@ -52,7 +52,7 @@ export default function(fastify: FastifyInstance, opts: FastifyPluginOptions, do
 
   fastify.get<{Params: {id: number,}}>('/discord-guild/:id', {schema: {params: {id: Type.Number()}}}, async function(req: FastifyRequest<{Params: {id: number}}>, reply): Promise<any>{
     logger.debug(`Received list of rule warnings for guild [guildId=${req.params.id}]`);
-    const ruleWarnings = await database.discordGuildRuleWarning.findMany({where: {isExpunged: false, discordGuildRule: {discordGuild: {id: req.params.id}}},include: {discordGuildRule: {include: {discordGuild: true, rule: true},},}, orderBy: {createdAt: 'desc'}, take: 15});
+    const ruleWarnings = await database.discordGuildRuleWarning.findMany({where: {isExpunged: false, discordGuildRule: {discordGuild: {id: req.params.id}}},include: {discordGuildRule: {include: {discordGuild: true, rule: true},},}, orderBy: {createdAt: 'desc'}, take: 5});
     
     const users = await getDiscordUserObjectMapWithCache(ruleWarnings.map(x => x.discordUserId));
     
@@ -61,19 +61,23 @@ export default function(fastify: FastifyInstance, opts: FastifyPluginOptions, do
 
   fastify.get<{Params: {id: number,}}>('/discord-guild/:id/summary', {preValidation: [fastify.auth([fastify.verifyJwt])], schema: {params: {id: Type.Number()}}}, async function (req: FastifyRequest<{Params: {id: number,}}>, reply) {
     logger.debug(`Received query for summary for guild [discordGuildId=${req.params.id}]`);
-    validateUserGuildAccess(req.headers.authorization!, req.params.id);
-    let warningsByDate: any = await database.$queryRaw(Prisma.sql`
-      SELECT d.day AS date_column, COUNT(dgrw.id)
-      FROM  (
-        SELECT generate_series(current_date - interval '7 days', current_date , interval '1 days')::date
-        ) d(day)
-      LEFT JOIN public."DiscordGuildRuleWarning" dgrw ON date(dgrw."createdAt") = d.day AND dgrw."discordGuildRuleId" IN (SELECT id FROM public."DiscordGuildRule" WHERE "discordGuildId"=${req.params.id})
-      GROUP by d.day
-      ORDER BY d.day;
-    `);
+    try {
+      await validateUserGuildAccess(req.headers.authorization!, req.params.id);
+      let warningsByDate: any = await database.$queryRaw(Prisma.sql`
+        SELECT d.day AS date_column, COUNT(dgrw.id)
+        FROM  (
+          SELECT generate_series(current_date - interval '7 days', current_date , interval '1 days')::date
+          ) d(day)
+        LEFT JOIN public."DiscordGuildRuleWarning" dgrw ON date(dgrw."createdAt") = d.day AND dgrw."discordGuildRuleId" IN (SELECT id FROM public."DiscordGuildRule" WHERE "discordGuildId"=${req.params.id})
+        GROUP by d.day
+        ORDER BY d.day;
+      `);
 
-    warningsByDate = warningsByDate.map( (x: { date_column: any; count: number }) => {return {date_column: x.date_column, count: x.count.toString()}});
-    return {warningsByDate};
+      warningsByDate = warningsByDate.map( (x: { date_column: any; count: number }) => {return {date_column: x.date_column, count: x.count.toString()}});
+      return {warningsByDate};
+    } catch (err) {
+      return reply.status(401).send({msg: 'You do not have access to that guild'});
+    }
   });
 
   done();

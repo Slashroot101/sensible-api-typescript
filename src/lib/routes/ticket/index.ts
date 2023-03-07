@@ -1,4 +1,5 @@
 import { TicketStatus } from "@prisma/client";
+import { Type } from "@sinclair/typebox";
 import { FastifyInstance, FastifyPluginOptions, FastifyRequest } from "fastify";
 import { Ticket, TicketGuildListParams, TicketGuildListQuery, TicketQuery, TicketStatusUpdate, TicketType } from "../../../types/ticket";
 import validateUserGuildAccess from "../../businessLogic/validateUserGuildAccess";
@@ -38,7 +39,7 @@ export default function(fastify: FastifyInstance, opts: FastifyPluginOptions, do
       discordUserQuery.discordUserId = query.discordUserId;
     }
 
-    const tickets = await database.ticket.findMany({where: {...ticketQuery, status: TicketStatus.Resolved, userGuild: {...discordUserQuery, discordGuildId: req.params.guildId}}, include: {userGuild: true}, take: 15});
+    const tickets = await database.ticket.findMany({where: {...ticketQuery, userGuild: {...discordUserQuery, discordGuildId: req.params.guildId}}, include: {userGuild: true}, take: 15});
 
     return {tickets};
   });
@@ -59,12 +60,28 @@ export default function(fastify: FastifyInstance, opts: FastifyPluginOptions, do
     return {ticket};
   });
 
-  fastify.put('/:id', {schema: TicketStatusUpdate}, async function (req: FastifyRequest<{Body: {status: TicketStatus, reason: string}, Params: {id: number}}>, reply){
+  fastify.put('/:id', {schema: TicketStatusUpdate}, async function (req: FastifyRequest<{Body: {status?: TicketStatus, reason: string}, Params: {id: number}}>, reply){
     logger.debug(`Received update request for ticketId=${req.params.id}`);
 
-    const ticket = await database.ticket.update({where: {id: Number(req.params.id)}, data: {status: req.body.status, reason: req.body.reason}});
+    const ticket = await database.ticket.update({where: {id: Number(req.params.id)}, data: req.body});
 
     return {ticket};
+  });
+
+  fastify.get<{Params: {discordGuildId: number}}>('/discord-guild/:discordGuildId/active', {schema: {params: {discordGuildId: Type.Number()}}}, async function(req: FastifyRequest<{Params: {discordGuildId: number}}>, reply){
+    logger.debug(`Received request for oldest active tickets`);
+
+    const tickets = await database.ticket.findMany({where:{userGuild: {discordGuildId: req.params.discordGuildId}, status: TicketStatus.Open, }, orderBy: [{createdAt: 'desc'}]});
+
+    return {tickets: tickets};
+  });
+
+  fastify.get<{Params: {discordGuildId: number}}>('/discord-guild/:discordGuildId/leaderboard', {schema: {params: {discordGuildId: Type.Number()}}}, async function(req: FastifyRequest<{Params: {discordGuildId: number}}>, reply) {
+    logger.debug(`Received request for leaderboard`);
+
+    const ticketsByAdmin = await database.ticket.groupBy({by: ['resolvedByUserId'], where: {userGuild: {discordGuildId: req.params.discordGuildId}, status: TicketStatus.Resolved}, _sum: {id: true}, orderBy: [{_sum: {id: 'desc'}}]});
+  
+    return {ticketsByAdmin};
   });
 
   done();

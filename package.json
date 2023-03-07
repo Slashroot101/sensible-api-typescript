@@ -34,6 +34,7 @@
     "g": "^2.0.1",
     "jsonwebtoken": "^9.0.0",
     "leo-profanity": "^1.7.0",
+    "lodash": "^4.17.21",
     "nats": "^2.9.2",
     "p-iteration": "^1.1.8",
     "pino": "^8.7.0",
@@ -44,6 +45,7 @@
   "devDependencies": {
     "@types/jsonwebtoken": "^9.0.1",
     "@types/leo-profanity": "^1.5.0",
+    "@types/lodash": "^4.14.191",
     "prisma": "^4.7.1"
   }
 }

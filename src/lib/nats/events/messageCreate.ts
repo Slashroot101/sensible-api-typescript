@@ -19,6 +19,10 @@ export default async (err: NatsError | null, msg: Msg): Promise<void> => {
     return;
   }
 
+  const userGuild = await database.userGuilds.findFirst({where: {discordUserId: parsedMessage.user.id, discordGuildId: parsedMessage.guild.id}});
+
+  await database.message.create({data: {message: parsedMessage.msg, messageSnowflake: parsedMessage.messageId, userGuildId: userGuild!.id, }});
+
   if(!parsedMessage){
     logger.info(`Received empty message, returning`);
 
@@ -76,8 +80,11 @@ export default async (err: NatsError | null, msg: Msg): Promise<void> => {
         if(!userGuild){
           userGuild = await database.userGuilds.create({data: {discordGuildId: parsedMessage.guild.id, discordUserId: parsedMessage.user.id, isAdmin: false}});
         }
-        const savedMessage = await database.message.create({data: {message: parsedMessage.msg, messageSnowflake: parsedMessage.messageId, sentiment: 1, comparitive: 1, userGuildId: userGuild.id}});
-        await database.discordGuildRuleWarning.create({ data: { isExpunged: false, discordGuildRuleId: discordGuildRuleId, messageId: savedMessage.id, discordUserId: parsedMessage.user.id, createdAt: new Date() } });  
+
+        const message = await database.message.findFirst({where: {messageSnowflake: parsedMessage.messageId}});
+        if(message){
+          await database.discordGuildRuleWarning.create({ data: { isExpunged: false, discordGuildRuleId: discordGuildRuleId, messageId: message.id, discordUserId: parsedMessage.user.id, createdAt: new Date() } });
+        }
       } else {
         logger.warn(`No discordRuleId found for punishment ${parsedMessage}`);
       }

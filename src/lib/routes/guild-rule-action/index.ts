@@ -1,3 +1,4 @@
+import { Type } from "@sinclair/typebox";
 import { FastifyInstance, FastifyPluginOptions, FastifyRequest, FastifyReply } from "fastify";
 import { GuildRuleAction, GuildRuleActionType } from "../../../types/guildRuleAction";
 import database from "../../database";
@@ -34,9 +35,9 @@ export default async (fastify: FastifyInstance, opts: FastifyPluginOptions, done
     return {tier: guildRuleAction};
   });
 
-  fastify.get<{Params: {guildRuleId: number; actionId: number;}}>('/guild-rule/:guildRuleId/action/:actionId', async (req, reply) => {
+  fastify.get<{Params: {guildRuleId: number; actionId: number;}}>('/guild-rule/:guildRuleId/action/:actionId', {schema: {params:{guildRuleId: Type.Number(), actionId: Type.Number()}}}, async (req, reply) => {
     logger.debug(`Received query request for [discordGuildRuleId=${req.params.guildRuleId}]/[actionId=${req.params.actionId}]`);
-    const castedParams = {discordGuildRuleId: Number(req.params.guildRuleId), ruleActionId: Number(req.params.actionId)} as any;
+    const castedParams = {discordGuildRuleId: Number(req.params.guildRuleId)} as any;
 
     const guildRuleAction = await database.discordGuildActionTier.findMany({where: castedParams});
 
