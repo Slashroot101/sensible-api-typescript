@@ -1,8 +1,10 @@
 import Axios from "axios";
 import { FastifyInstance, FastifyPluginOptions, FastifyReply, FastifyRequest } from "fastify";
 import { DiscordGuild, DiscordGuildQuery, DiscordGuildType, DiscordTicketCategoryId, DiscordTicketCategoryIdType, DiscordTicketCreationId, DiscordTicketCreationIdType } from "../../../types/discordGuild";
+import { SocketEvents } from "../../../types/socket";
 import database from "../../database";
 import logger from "../../logger";
+import socket from "../../socket";
 
 export default async (fastify: FastifyInstance, opts: FastifyPluginOptions, done: any) => {
   logger.debug('Loading DiscordGuild routes');
@@ -11,7 +13,7 @@ export default async (fastify: FastifyInstance, opts: FastifyPluginOptions, done
     const discordGuild = await database.discordGuild.create({data: {
       ...req.body,
     }});
-
+    socket.emit(SocketEvents.DiscordGuildCreated, discordGuild);
     return { discordGuild, };
   });
 
@@ -19,7 +21,7 @@ export default async (fastify: FastifyInstance, opts: FastifyPluginOptions, done
     logger.debug(`Updating DiscordGuild ticketIdCategory for [guildId=${req.params.id}]`);
 
     const discordGuild = await database.discordGuild.update({where: {id: Number(req.params.id)}, data: {ticketCategoryId: req.body.ticketCategoryId}});
-    
+    socket.emit(SocketEvents.DiscordGuildUpdated, discordGuild);
     return {discordGuild, };
   });
 
@@ -27,7 +29,7 @@ export default async (fastify: FastifyInstance, opts: FastifyPluginOptions, done
     logger.debug(`Updating DiscordGuild creationChannel for [guildId=${req.params.id}]`);
 
     const discordGuild = await database.discordGuild.update({where: {id: Number(req.params.id)}, data: {ticketCreationChannelId: req.body.ticketCreationChannelId}});
-    
+    socket.emit(SocketEvents.DiscordGuildUpdated, discordGuild);
     return {discordGuild, };
   });
 

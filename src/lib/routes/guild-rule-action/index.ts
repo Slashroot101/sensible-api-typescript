@@ -1,7 +1,9 @@
 import { FastifyInstance, FastifyPluginOptions, FastifyRequest, FastifyReply } from "fastify";
 import { GuildRuleAction, GuildRuleActionType } from "../../../types/guildRuleAction";
+import { SocketEvents } from "../../../types/socket";
 import database from "../../database";
 import logger from "../../logger";
+import socket from "../../socket";
 
 export default async (fastify: FastifyInstance, opts: FastifyPluginOptions, done: any) => {
   logger.debug('Loading GuildRuleAction routes');
@@ -15,6 +17,7 @@ export default async (fastify: FastifyInstance, opts: FastifyPluginOptions, done
       const guildRuleAction = req.body as GuildRuleActionType;
 
       const updatedTier = await database.discordGuildActionTier.updateMany({ data: {maxOffenses: guildRuleAction.maxOffenses}, where: {id: Number(req.params.tierId)}, });
+      socket.emit(SocketEvents.DiscordGuildRuleActionUpdated, updatedTier);
       return {tier: updatedTier};
   });
 
@@ -30,7 +33,7 @@ export default async (fastify: FastifyInstance, opts: FastifyPluginOptions, done
     }
 
     const guildRuleAction = await database.discordGuildActionTier.create({data: body});
-
+    socket.emit(SocketEvents.DiscordGuildRuleActionCreated, guildRuleAction);
     return {tier: guildRuleAction};
   });
 
@@ -39,7 +42,6 @@ export default async (fastify: FastifyInstance, opts: FastifyPluginOptions, done
     const castedParams = {discordGuildRuleId: Number(req.params.guildRuleId), ruleActionId: Number(req.params.actionId)} as any;
 
     const guildRuleAction = await database.discordGuildActionTier.findMany({where: castedParams});
-
     return {tier: guildRuleAction};
   });
   

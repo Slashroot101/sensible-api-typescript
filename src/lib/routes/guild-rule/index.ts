@@ -2,7 +2,8 @@ import { FastifyInstance, FastifyPluginOptions} from "fastify";
 import database from "../../database";
 import logger from "../../logger";
 import { GuildRule, GuildRuleType } from "../../../types/guildRule";
-import { stringify } from "querystring";
+import socket from "../../socket";
+import { SocketEvents } from "../../../types/socket";
 
 export default async function(fastify: FastifyInstance, opts: FastifyPluginOptions, done: any) {
   logger.debug('Loading GuildRule routes');
@@ -19,7 +20,7 @@ export default async function(fastify: FastifyInstance, opts: FastifyPluginOptio
     }
 
     const createdRule = await database.discordGuildRule.create({data: {...req.body, ...castedParams}});
-
+    socket.emit(SocketEvents.DiscordGuildRuleCreated, createdRule);
     return {discordGuildRule: createdRule};
   });
 
@@ -27,7 +28,7 @@ export default async function(fastify: FastifyInstance, opts: FastifyPluginOptio
     logger.debug(`Received get request for [ruleId=${req.params.ruleId}] and [ruleActionId=${req.params.ruleActionId}]`);
     const castedParams = {ruleId: Number(req.params.ruleId), ruleActionId: Number(req.params.ruleActionId)} as any;
     const discordGuildRule = await database.discordGuildRule.findFirst({where: {...castedParams}});
-
+    
     return {discordGuildRule};
   });
   

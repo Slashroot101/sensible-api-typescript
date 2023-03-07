@@ -6,6 +6,8 @@ import { getDiscordUserObjectMapWithCache } from "../../discord";
 import logger from "../../logger";
 import { Prisma } from "@prisma/client";
 import validateUserGuildAccess from "../../businessLogic/validateUserGuildAccess";
+import socket from "../../socket";
+import { SocketEvents } from "../../../types/socket";
 
 export default function(fastify: FastifyInstance, opts: FastifyPluginOptions, done: any){
   logger.debug('Loading RuleWarning routes');
@@ -17,7 +19,7 @@ export default function(fastify: FastifyInstance, opts: FastifyPluginOptions, do
     }>, reply): Promise<any> {
       logger.debug(`Received create request for [ruleId=${req.params.discordGuildRuleId}]`);
       const createdWarning = await database.discordGuildRuleWarning.create({data: {...req.body, createdAt: new Date()},});
-
+      socket.emit(SocketEvents.DiscordGuildRuleWarningCreated, createdWarning);
       return {warning: createdWarning};
   });
 
@@ -28,8 +30,9 @@ export default function(fastify: FastifyInstance, opts: FastifyPluginOptions, do
       Body: RuleWarningType;
     }>, reply): Promise<any> {
       logger.debug(`Received patch request for [ruleId=${req.params.warningId}]`);
-
-      return {warning: await database.discordGuildRuleWarning.update({where: {id: req.params.warningId}, data: req.body})};
+      const updatedWarning = await database.discordGuildRuleWarning.update({where: {id: req.params.warningId}, data: req.body});
+      socket.emit(SocketEvents.DiscordGuildRuleWarningUpdated, updatedWarning);
+      return {warning: updatedWarning};
     });
 
   fastify.put<{Params: {warningId: number;}}>('/:warningId/expunge', async function (req: FastifyRequest<{
@@ -38,8 +41,9 @@ export default function(fastify: FastifyInstance, opts: FastifyPluginOptions, do
     };
   }>, reply): Promise<any> {
     logger.debug(`Received expunge put request for [ruleId=${req.params.warningId}]`);
-
-    return {warning: await database.discordGuildRuleWarning.update({where: {id: Number(req.params.warningId)}, data: {isExpunged: true, expungedAt: new Date(),}})};
+    const updatedRuleWarning = await database.discordGuildRuleWarning.update({where: {id: Number(req.params.warningId)}, data: {isExpunged: true, expungedAt: new Date(),}});
+    socket.emit(SocketEvents.DiscordGuildRuleWarningExpunged, updatedRuleWarning);
+    return {warning: updatedRuleWarning};
   });
 
   fastify.get('/', {}, async function(req: FastifyRequest<{Querystring: {discordUserId: number}}>, reply): Promise<any> {

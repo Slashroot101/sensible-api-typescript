@@ -3,6 +3,7 @@ import Axios  from "axios";
 import { APIUser } from "discord-api-types/v10";
 import { FastifyInstance, FastifyPluginOptions, FastifyRequest } from "fastify";
 import { forEach } from "p-iteration";
+import { SocketEvents } from "../../../types/socket";
 import { SideEnum, TicketMessage, TicketMessageTimelineItem, TicketMessageType } from "../../../types/ticketMessage";
 import validateUserGuildAccess from "../../businessLogic/validateUserGuildAccess";
 import config from "../../config";
@@ -10,6 +11,7 @@ import database from "../../database";
 import { getDiscordUserWithCache } from "../../discord";
 import logger from "../../logger";
 import redis from "../../redis";
+import socket from "../../socket";
 
 export default function(fastify: FastifyInstance, opts: FastifyPluginOptions, done: any){
   logger.debug(`Loading TicketMessage routes`);
@@ -18,7 +20,7 @@ export default function(fastify: FastifyInstance, opts: FastifyPluginOptions, do
   }>, reply): Promise<any> {
     logger.debug(`Received create request for ticketMessage [userId=${req.body.discordUserId}]/[messageSnowflake=${req.body.message}]`);
     const ticketMessage = await database.ticketMessage.create({data: {message: req.body.message, messageCreationDate: req.body.messageCreationDate, messageSnowflake: req.body.messageSnowflake, discordUserId: req.body.discordUserId, ticketId: req.body.ticketId}});
-  
+    socket.emit(SocketEvents.TicketMessageCreated, ticketMessage);
     return {ticketMessage};
   });
 

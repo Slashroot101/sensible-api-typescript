@@ -1,7 +1,9 @@
 import { FastifyInstance, FastifyPluginOptions, FastifyRequest } from "fastify";
 import { GuildBlacklist, GuildBlacklistType } from "../../../types/guildBlacklist";
+import { SocketEvents } from "../../../types/socket";
 import database from "../../database";
 import logger from "../../logger";
+import socket from "../../socket";
 
 export default async function (fastify: FastifyInstance, opts: FastifyPluginOptions, done: any) {
   logger.debug(`Loading GuildBlacklist routes`);
@@ -18,7 +20,7 @@ export default async function (fastify: FastifyInstance, opts: FastifyPluginOpti
       if(existingWords.length){
         return existingWords[0];
       }
-
+      socket.emit(SocketEvents.DiscordGuildBlacklistCreated, blacklist);
       return {blacklist: await database.discordGuildBlacklist.createMany({data: {word: req.body.word, discordGuildId: Number(req.params.guildId),}})};
     });
 
@@ -29,7 +31,7 @@ export default async function (fastify: FastifyInstance, opts: FastifyPluginOpti
     }>, reply) {
       const blacklist = req.body as GuildBlacklistType;
       logger.debug(`Received delete request for [guildId=${req.params.guildId}] and word [word=${blacklist.word}]`);
-
+      socket.emit(SocketEvents.DiscordGuildBlacklistDeleted, blacklist);
       await {blacklist: database.discordGuildBlacklist.deleteMany({where: {word: blacklist.word, discordGuildId: req.params.guildId}})};
   });
   
