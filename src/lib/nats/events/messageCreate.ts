@@ -21,7 +21,7 @@ export default async (err: NatsError | null, msg: Msg): Promise<void> => {
 
   const userGuild = await database.userGuilds.findFirst({where: {discordUserId: parsedMessage.user.id, discordGuildId: parsedMessage.guild.id}});
 
-  await database.message.create({data: {message: parsedMessage.msg, messageSnowflake: parsedMessage.messageId, userGuildId: userGuild!.id, }});
+  await database.message.create({data: {message: parsedMessage.msg, messageSnowflake: parsedMessage.messageId, userGuildId: userGuild!.id, sentiment: 0, comparitive: 0 }});
 
   if(!parsedMessage){
     logger.info(`Received empty message, returning`);
