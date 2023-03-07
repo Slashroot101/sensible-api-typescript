@@ -6,6 +6,8 @@ import { Type } from "@sinclair/typebox";
 import { Prisma } from "@prisma/client";
 import lodash from 'lodash';
 import validateUserGuildAccess from "../../businessLogic/validateUserGuildAccess";
+import socket from "../../socket";
+import { SocketEvents } from "../../../types/socket";
 
 export default async function(fastify: FastifyInstance, opts: FastifyPluginOptions, done: any) {
   logger.debug('Loading GuildRule routes');
@@ -22,7 +24,7 @@ export default async function(fastify: FastifyInstance, opts: FastifyPluginOptio
     }
 
     const createdRule = await database.discordGuildRule.create({data: {...req.body, ...castedParams}});
-
+    socket.emit(SocketEvents.DiscordGuildRuleCreated, createdRule);
     return {discordGuildRule: createdRule};
   });
 

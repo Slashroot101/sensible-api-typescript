@@ -1,10 +1,12 @@
 import { TicketStatus } from "@prisma/client";
 import { Type } from "@sinclair/typebox";
 import { FastifyInstance, FastifyPluginOptions, FastifyRequest } from "fastify";
+import { SocketEvents } from "../../../types/socket";
 import { Ticket, TicketGuildListParams, TicketGuildListQuery, TicketQuery, TicketStatusUpdate, TicketType } from "../../../types/ticket";
 import validateUserGuildAccess from "../../businessLogic/validateUserGuildAccess";
 import database from "../../database";
 import logger from "../../logger";
+import socket from "../../socket";
 
 
 export default function(fastify: FastifyInstance, opts: FastifyPluginOptions, done: any){
@@ -14,7 +16,7 @@ export default function(fastify: FastifyInstance, opts: FastifyPluginOptions, do
   }>): Promise<any> {
     logger.debug(`Received create request for [userId=${req.body.userGuildId}]/[channelSnowflake=${req.body.discordChannelSnowflake}]`);
     const createdTicket = await database.ticket.create({data: {...req.body, createdAt: new Date()}});
-
+    socket.emit(SocketEvents.TicketCreated, createdTicket);
     return {ticket: createdTicket};
   });
 
@@ -56,15 +58,15 @@ export default function(fastify: FastifyInstance, opts: FastifyPluginOptions, do
     logger.debug(`Received correlation update request for ticketId=${req.params.id}`);
 
     const ticket = await database.ticket.update({where: {id: Number(req.params.id)}, data: {correlationId: req.body.correlationId}});
-
+    socket.emit(SocketEvents.TicketCorrelationChannelCreated, ticket);
     return {ticket};
   });
 
   fastify.put('/:id', {schema: TicketStatusUpdate}, async function (req: FastifyRequest<{Body: {status?: TicketStatus, reason: string}, Params: {id: number}}>, reply){
     logger.debug(`Received update request for ticketId=${req.params.id}`);
 
-    const ticket = await database.ticket.update({where: {id: Number(req.params.id)}, data: req.body});
-
+    const ticket = await database.ticket.update({where: {id: Number(req.params.id)}, data: {status: req.body.status, reason: req.body.reason}});
+    socket.emit(SocketEvents.TicketUpdated, ticket);
     return {ticket};
   });
 

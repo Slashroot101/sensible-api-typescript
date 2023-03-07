@@ -3,6 +3,8 @@ import { PhotoMessage, PhotoMessageType } from "../../../types/ticketPhoto";
 import {writeFile} from 'fs/promises';
 import logger from "../../logger";
 import database from "../../database";
+import socket from "../../socket";
+import { SocketEvents } from "../../../types/socket";
 
 const fileStore = '../../../file-store';
 
@@ -17,6 +19,7 @@ export default function(fastify: FastifyInstance, opts: FastifyPluginOptions, do
     logger.trace(`Completed file write for ${req.body.fileName} and [ticketMessageId=${req.body.ticketMessageId}], proceeding to datbaase create.`);
     const photo = database.photoMessage.create({data: {hash: req.body.hash, fileName: req.body.fileName, size: req.body.size, ticketMessageId: req.body.ticketMessageId}});
     logger.trace(`Completed database write for ${req.body.fileName} and [ticketMessageId=${req.body.ticketMessageId}], returning response`);
+    socket.emit(SocketEvents.TicketPhotoCreated, photo);
     return {ticketPhoto: photo};
   });
   done();
