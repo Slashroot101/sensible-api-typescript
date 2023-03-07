@@ -1,12 +1,12 @@
 import dotenv from 'dotenv';
 
 dotenv.config({ path: `${process.cwd()}/.env`});
-const envVariables = process.env;
-if(!envVariables.NATS_URL){
-  throw new Error('Missing NATS connection string');
+
+interface Config {
+  [key: string]: string;
 }
 
-export default {
+const config = {
 	natsUrl: process.env.NATS_URL,
   discordToken: process.env.DISCORD_TOKEN,
   discordClientId: process.env.DISCORD_CLIENT_ID,
@@ -16,4 +16,13 @@ export default {
   redisUrl: process.env.REDIS_URL,
   discordApiUrl: process.env.DISCORD_API_URL,
   jwtSecret: process.env.JWT_SECRET,
-};
+  socketPort: process.env.SOCKET_PORT,
+} as Config;
+
+Object.keys(config).forEach((key) => { 
+  if(!config[key]){
+    throw new Error(`Missing ${key} in .env file`);
+  }
+});
+
+export default config;
