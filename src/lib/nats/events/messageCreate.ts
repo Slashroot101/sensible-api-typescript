@@ -3,6 +3,8 @@ import logger from "../../logger";
 import database from "../../database";
 import MessageProcessor from "../../handlers/message-processor";
 import { MessageCreateEvent, RuleActionFlagMap } from "../../../types/messageProcessor";
+import socket from "../../socket";
+import { SocketEvents } from "../../../types/socket";
 const natsConnection = require('../../nats');
 export default async (err: NatsError | null, msg: Msg): Promise<void> => {
   const nats = await natsConnection.default;
@@ -83,7 +85,8 @@ export default async (err: NatsError | null, msg: Msg): Promise<void> => {
 
         const message = await database.message.findFirst({where: {messageSnowflake: parsedMessage.messageId}});
         if(message){
-          await database.discordGuildRuleWarning.create({ data: { isExpunged: false, discordGuildRuleId: discordGuildRuleId, messageId: message.id, discordUserId: parsedMessage.user.id, createdAt: new Date() } });
+          const warning = await database.discordGuildRuleWarning.create({ data: { isExpunged: false, discordGuildRuleId: discordGuildRuleId, messageId: message.id, discordUserId: parsedMessage.user.id, createdAt: new Date() } });
+          socket.to(parsedMessage.guild.id.toString()).emit(SocketEvents.DiscordGuildRuleWarningCreated, warning);
         }
       } else {
         logger.warn(`No discordRuleId found for punishment ${parsedMessage}`);

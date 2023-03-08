@@ -20,6 +20,7 @@ export default function(fastify: FastifyInstance, opts: FastifyPluginOptions, do
       logger.debug(`Received create request for [ruleId=${req.params.discordGuildRuleId}]`);
       const createdWarning = await database.discordGuildRuleWarning.create({data: {...req.body, createdAt: new Date()},});
       const guildRule = await database.discordGuildRule.findUniqueOrThrow({where: {id: req.params.discordGuildRuleId}});
+      console.log(guildRule.discordGuildId);
       socket.to(guildRule.discordGuildId.toString()).emit(SocketEvents.DiscordGuildRuleWarningCreated, createdWarning);
       return {warning: createdWarning};
   });
