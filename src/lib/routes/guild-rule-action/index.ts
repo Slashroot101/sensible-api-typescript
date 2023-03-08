@@ -18,7 +18,8 @@ export default async (fastify: FastifyInstance, opts: FastifyPluginOptions, done
       const guildRuleAction = req.body as GuildRuleActionType;
 
       const updatedTier = await database.discordGuildActionTier.updateMany({ data: {maxOffenses: guildRuleAction.maxOffenses}, where: {id: Number(req.params.tierId)}, });
-      socket.emit(SocketEvents.DiscordGuildRuleActionUpdated, updatedTier);
+      const guild = await database.discordGuildActionTier.findFirstOrThrow({where: {id: Number(req.params.tierId)}, include: {discordGuildRule: {include: {discordGuild: true}}}});
+      socket.to(guild.id.toString()).emit(SocketEvents.DiscordGuildRuleActionUpdated, updatedTier);
       return {tier: updatedTier};
   });
 
@@ -26,7 +27,7 @@ export default async (fastify: FastifyInstance, opts: FastifyPluginOptions, done
     logger.debug(`Received post request for new guildRuleAction [discordGuildRuleId=${req.body.discordGuildRuleId}]/[ruleActionId=${req.body.ruleActionId}]`)
     const body = req.body as GuildRuleActionType;
 
-    const tier = await database.discordGuildActionTier.findFirst({where: {ruleActionId: req.body.ruleActionId, discordGuildRuleId: req.body.discordGuildRuleId}});
+    const tier = await database.discordGuildActionTier.findFirstOrThrow({where: {ruleActionId: req.body.ruleActionId, discordGuildRuleId: req.body.discordGuildRuleId},});
 
     if(tier) {
       logger.warn(`Found existing tier [guildRuleActionTier=${tier.id}], returning instead of creating`);
@@ -34,7 +35,8 @@ export default async (fastify: FastifyInstance, opts: FastifyPluginOptions, done
     }
 
     const guildRuleAction = await database.discordGuildActionTier.create({data: body});
-    socket.emit(SocketEvents.DiscordGuildRuleActionCreated, guildRuleAction);
+    const discordGuild = await database.discordGuildActionTier.findFirstOrThrow({where:{id: guildRuleAction.id}, include: {discordGuildRule: {include: {discordGuild: true}}}});
+    socket.to(discordGuild.discordGuildRule.discordGuild.id.toString()).emit(SocketEvents.DiscordGuildRuleActionCreated, guildRuleAction);
     return {tier: guildRuleAction};
   });
 

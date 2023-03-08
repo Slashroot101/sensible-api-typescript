@@ -20,7 +20,7 @@ export default function(fastify: FastifyInstance, opts: FastifyPluginOptions, do
   }>, reply): Promise<any> {
     logger.debug(`Received create request for ticketMessage [userId=${req.body.discordUserId}]/[messageSnowflake=${req.body.message}]`);
     const ticketMessage = await database.ticketMessage.create({data: {message: req.body.message, messageCreationDate: req.body.messageCreationDate, messageSnowflake: req.body.messageSnowflake, discordUserId: req.body.discordUserId, ticketId: req.body.ticketId}});
-    socket.emit(SocketEvents.TicketMessageCreated, ticketMessage);
+    socket.to(ticketMessage.ticketId.toString()).emit(SocketEvents.TicketMessageCreated, ticketMessage);
     return {ticketMessage};
   });
 

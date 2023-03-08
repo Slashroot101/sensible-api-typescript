@@ -24,7 +24,7 @@ export default async function(fastify: FastifyInstance, opts: FastifyPluginOptio
     }
 
     const createdRule = await database.discordGuildRule.create({data: {...req.body, ...castedParams}});
-    socket.emit(SocketEvents.DiscordGuildRuleCreated, createdRule);
+    socket.to(req.params.guildId.toString()).emit(SocketEvents.DiscordGuildRuleCreated, createdRule);
     return {discordGuildRule: createdRule};
   });
 

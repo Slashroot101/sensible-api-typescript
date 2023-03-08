@@ -31,7 +31,7 @@ export default function(fastify: FastifyInstance, opts: FastifyPluginOptions, do
   fastify.post<{Body: UserGuildType}>('/', {schema: {body: UserGuild}}, async (req: FastifyRequest<{Body: UserGuildType}>, reply) => {
     logger.debug(`Creating UserGuild`);
     const userGuild = await database.userGuilds.create({data: {discordUserId: req.body.discordUserId, discordGuildId: req.body.discordGuildId, isAdmin: req.body.isAdmin}});
-    socket.emit(SocketEvents.UserGuildCreated, userGuild);
+    socket.to(userGuild.discordUserId.toString()).emit(SocketEvents.UserGuildCreated, userGuild);
     return {userGuild};
   });
 

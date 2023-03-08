@@ -19,7 +19,7 @@ export default async (fastify: FastifyInstance, opts: FastifyPluginOptions, done
   fastify.post<{Body: DiscordUserType, Reply: DiscordUserType}>('/', {schema: {body: DiscordUser}} , async function (req, reply): Promise<any> {
     logger.debug(`Creating DiscordUser with snowflake [discordSnowflake=${req.body.discordSnowflake}]`);
     const discordUser = await database.discordUser.create({data: {...req.body}});
-    socket.emit(SocketEvents.DiscordUserCreated, discordUser);
+    socket.to('admins').emit(SocketEvents.DiscordUserCreated, discordUser);
     return { discordUser: discordUser };
   });
 

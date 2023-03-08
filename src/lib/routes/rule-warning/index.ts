@@ -19,7 +19,8 @@ export default function(fastify: FastifyInstance, opts: FastifyPluginOptions, do
     }>, reply): Promise<any> {
       logger.debug(`Received create request for [ruleId=${req.params.discordGuildRuleId}]`);
       const createdWarning = await database.discordGuildRuleWarning.create({data: {...req.body, createdAt: new Date()},});
-      socket.emit(SocketEvents.DiscordGuildRuleWarningCreated, createdWarning);
+      const guildRule = await database.discordGuildRule.findUniqueOrThrow({where: {id: req.params.discordGuildRuleId}});
+      socket.to(guildRule.discordGuildId.toString()).emit(SocketEvents.DiscordGuildRuleWarningCreated, createdWarning);
       return {warning: createdWarning};
   });
 
@@ -31,7 +32,8 @@ export default function(fastify: FastifyInstance, opts: FastifyPluginOptions, do
     }>, reply): Promise<any> {
       logger.debug(`Received patch request for [ruleId=${req.params.warningId}]`);
       const updatedWarning = await database.discordGuildRuleWarning.update({where: {id: req.params.warningId}, data: req.body});
-      socket.emit(SocketEvents.DiscordGuildRuleWarningUpdated, updatedWarning);
+      const guildRule = await database.discordGuildRule.findUniqueOrThrow({where: {id: updatedWarning.discordGuildRuleId}});
+      socket.to(guildRule.discordGuildId.toString()).emit(SocketEvents.DiscordGuildRuleWarningUpdated, updatedWarning);
       return {warning: updatedWarning};
     });
 
@@ -42,7 +44,8 @@ export default function(fastify: FastifyInstance, opts: FastifyPluginOptions, do
   }>, reply): Promise<any> {
     logger.debug(`Received expunge put request for [ruleId=${req.params.warningId}]`);
     const updatedRuleWarning = await database.discordGuildRuleWarning.update({where: {id: Number(req.params.warningId)}, data: {isExpunged: true, expungedAt: new Date(),}});
-    socket.emit(SocketEvents.DiscordGuildRuleWarningExpunged, updatedRuleWarning);
+    const guildRule = await database.discordGuildRule.findUniqueOrThrow({where: {id:updatedRuleWarning.discordGuildRuleId}});
+    socket.to(guildRule.discordGuildId.toString()).emit(SocketEvents.DiscordGuildRuleWarningExpunged, updatedRuleWarning);
     return {warning: updatedRuleWarning};
   });
 

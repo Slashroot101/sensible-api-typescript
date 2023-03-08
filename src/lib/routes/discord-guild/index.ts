@@ -13,7 +13,7 @@ export default async (fastify: FastifyInstance, opts: FastifyPluginOptions, done
     const discordGuild = await database.discordGuild.create({data: {
       ...req.body,
     }});
-    socket.emit(SocketEvents.DiscordGuildCreated, discordGuild);
+    socket.to(discordGuild.id.toString()).emit(SocketEvents.DiscordGuildCreated, discordGuild);
     return { discordGuild, };
   });
 
@@ -21,7 +21,7 @@ export default async (fastify: FastifyInstance, opts: FastifyPluginOptions, done
     logger.debug(`Updating DiscordGuild ticketIdCategory for [guildId=${req.params.id}]`);
 
     const discordGuild = await database.discordGuild.update({where: {id: Number(req.params.id)}, data: {ticketCategoryId: req.body.ticketCategoryId}});
-    socket.emit(SocketEvents.DiscordGuildUpdated, discordGuild);
+    socket.to(discordGuild.id.toString()).emit(SocketEvents.DiscordGuildUpdated, discordGuild);
     return {discordGuild, };
   });
 
@@ -29,7 +29,7 @@ export default async (fastify: FastifyInstance, opts: FastifyPluginOptions, done
     logger.debug(`Updating DiscordGuild creationChannel for [guildId=${req.params.id}]`);
 
     const discordGuild = await database.discordGuild.update({where: {id: Number(req.params.id)}, data: {ticketCreationChannelId: req.body.ticketCreationChannelId}});
-    socket.emit(SocketEvents.DiscordGuildUpdated, discordGuild);
+    socket.to(discordGuild.id.toString()).emit(SocketEvents.DiscordGuildUpdated, discordGuild);
     return {discordGuild, };
   });
 
