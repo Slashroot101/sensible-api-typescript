@@ -1,4 +1,5 @@
 import { DiscordGuild, DiscordUser, RuleAction } from "@prisma/client";
+import { APIAttachment } from "discord-api-types/v10";
 
 export type RuleActionFlag = {
   enabled: Boolean;
@@ -14,6 +15,7 @@ export type MessageCreateEvent = {
   channel: string;
   messageId: string;
   messageCreationDate: Date;
+  attachments: {id: string, url: string, name: string, size: number}[];
 }
 
 export type RuleActionFlagMap = {

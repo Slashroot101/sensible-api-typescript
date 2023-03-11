@@ -8,7 +8,7 @@ import cors from '@fastify/cors'
 import jwt from 'jsonwebtoken';
 import auth from '@fastify/auth';
 
-const server = fastify({logger: logger});
+const server = fastify({logger: logger, bodyLimit: 100000000});
 
 declare module "fastify" {
   interface FastifyInstance {

@@ -5,8 +5,9 @@ import logger from "../../logger";
 import database from "../../database";
 import socket from "../../socket";
 import { SocketEvents } from "../../../types/socket";
+import config from '../../config/index';
 
-const fileStore = '../../../file-store';
+const fileStore = config.fileStore;
 
 export default function(fastify: FastifyInstance, opts: FastifyPluginOptions, done: any){
   logger.debug(`Loading TicketPhoto routes`);

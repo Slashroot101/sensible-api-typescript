@@ -17,6 +17,8 @@ const config = {
   discordApiUrl: process.env.DISCORD_API_URL,
   jwtSecret: process.env.JWT_SECRET,
   socketPort: process.env.SOCKET_PORT,
+  protocol: process.env.PROTOCOL,
+  fileStore: process.env.FILE_STORE,
 } as Config;
 
 Object.keys(config).forEach((key) => { 

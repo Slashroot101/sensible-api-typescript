@@ -5,6 +5,11 @@ import MessageProcessor from "../../handlers/message-processor";
 import { MessageCreateEvent, RuleActionFlagMap } from "../../../types/messageProcessor";
 import socket from "../../socket";
 import { SocketEvents } from "../../../types/socket";
+import axios from "axios";
+import {writeFile} from 'fs/promises';
+import { write } from "fs";
+import config from "../../config";
+import { createHash } from "crypto";
 const natsConnection = require('../../nats');
 export default async (err: NatsError | null, msg: Msg): Promise<void> => {
   const nats = await natsConnection.default;
@@ -35,13 +40,28 @@ export default async (err: NatsError | null, msg: Msg): Promise<void> => {
   const ticket = await database.ticket.findFirst({where: {discordChannelSnowflake: parsedMessage.channel}});
   if(ticket){
     logger.debug(`Found ticket for [ticketId=${ticket.id}], creating ticket message`);
-    await database.ticketMessage.create({data: {
+    const ticketMessage = await database.ticketMessage.create({data: {
       message: parsedMessage.msg,
       messageCreationDate: parsedMessage.messageCreationDate,
       messageSnowflake: parsedMessage.messageId,
       discordUserId: parsedMessage.user.id,
       ticketId: ticket.id,
     }});
+
+    //fetch any attachments
+    for(const attachment of parsedMessage.attachments){
+      console.log(attachment)
+      const image = await axios.get(attachment.url, {responseType: 'arraybuffer'});
+      await axios.post(`${config.protocol}${config.host}:${config.port}/ticket-photo/ticket/${ticket.id}`,
+       {
+        fileName: attachment.name,
+        ticketMessageId: ticketMessage.id,
+        hash: createHash('md5').update(image.data).digest('hex'),
+        size: attachment.size,
+        photoBuffer: image.data
+       }
+      );
+    }
 
     return;
   }
@@ -62,14 +82,13 @@ export default async (err: NatsError | null, msg: Msg): Promise<void> => {
     sentiment,
   } as RuleActionFlagMap;
   const actions = await new MessageProcessor().process(parsedMessage, flags);
-
   actions.forEach(async action => {
       let discordGuildRuleId: number | undefined = undefined;
-      if('swearing' in action){
+      if('swearing' in action && action.swearing?.contains === true){
         discordGuildRuleId = flags.swearing.guildRuleId;
       }
 
-      if('blacklist' in action) {
+      if('blacklist' in action && action.blacklist?.contains === true) {
           discordGuildRuleId = flags.blacklist.guildRuleId;
       }
 
@@ -89,7 +108,7 @@ export default async (err: NatsError | null, msg: Msg): Promise<void> => {
           socket.to(parsedMessage.guild.id.toString()).emit(SocketEvents.DiscordGuildRuleWarningCreated, warning);
         }
       } else {
-        logger.warn(`No discordRuleId found for punishment ${parsedMessage}`);
+        logger.warn(`No discordRuleId found for punishment ${JSON.stringify(flags)}`);
       }
   });
 
