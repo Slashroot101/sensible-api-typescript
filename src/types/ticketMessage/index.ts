@@ -1,4 +1,5 @@
 import { Static, Type } from '@sinclair/typebox';
+import { PhotoMessage, PhotoMessageType } from '../ticketPhoto';
 
 export type TicketMessageTimelineItem = {
   id: number;
@@ -7,14 +8,8 @@ export type TicketMessageTimelineItem = {
   messageSnowflake: string;
   discordUserId: number;
   ticketId: number;
-  side: SideEnum;
+  photoMessage: PhotoMessageType[]
 }
-
-export enum SideEnum {
-  Left = 'left',
-  Right = 'right'
-}
-
 
 export const TicketMessage = Type.Object({
   id: Type.Optional(Type.Number()),
@@ -22,7 +17,7 @@ export const TicketMessage = Type.Object({
   messageCreationDate: Type.Date(),
   messageSnowflake: Type.String(),
   discordUserId: Type.Number(),
-  ticketId: Type.Number(),
+  ticketId: Type.Number()
 });
 
 export type TicketMessageType = Static<typeof TicketMessage>;

@@ -4,7 +4,7 @@ import { APIUser } from "discord-api-types/v10";
 import { FastifyInstance, FastifyPluginOptions, FastifyRequest } from "fastify";
 import { forEach } from "p-iteration";
 import { SocketEvents } from "../../../types/socket";
-import { SideEnum, TicketMessage, TicketMessageTimelineItem, TicketMessageType } from "../../../types/ticketMessage";
+import { TicketMessage, TicketMessageTimelineItem, TicketMessageType } from "../../../types/ticketMessage";
 import validateUserGuildAccess from "../../businessLogic/validateUserGuildAccess";
 import config from "../../config";
 import database from "../../database";
@@ -20,7 +20,8 @@ export default function(fastify: FastifyInstance, opts: FastifyPluginOptions, do
   }>, reply): Promise<any> {
     logger.debug(`Received create request for ticketMessage [userId=${req.body.discordUserId}]/[messageSnowflake=${req.body.message}]`);
     const ticketMessage = await database.ticketMessage.create({data: {message: req.body.message, messageCreationDate: req.body.messageCreationDate, messageSnowflake: req.body.messageSnowflake, discordUserId: req.body.discordUserId, ticketId: req.body.ticketId}});
-    socket.to(ticketMessage.ticketId.toString()).emit(SocketEvents.TicketMessageCreated, ticketMessage);
+    const guild = await database.ticketMessage.findFirst({where: {id: ticketMessage.id}, include: {ticket: {include: {userGuild: true}}}});
+    socket.to(guild?.ticket!.userGuild!.discordGuildId!.toString()!).emit(SocketEvents.TicketMessageCreated, ticketMessage);
     return {ticketMessage};
   });
 
@@ -35,23 +36,16 @@ export default function(fastify: FastifyInstance, opts: FastifyPluginOptions, do
     if(!userGuild) throw new Error('Guild not found');
     try {
       await validateUserGuildAccess(req.headers.authorization!, userGuild.id);
-      const ticketMessages = await database.ticketMessage.findMany({where: {ticketId: req.params.id}, orderBy: {messageCreationDate: 'asc'}});
+      const ticketMessages = await database.ticketMessage.findMany({where: {ticketId: req.params.id}, include: {photoMessage: true},orderBy: {messageCreationDate: 'asc'}});
       const users: number[] = [];
   
   
       const mappedMessages = ticketMessages.map(x => {
         logger.trace(`Beginning message mapping for [ticketId=${ticket.id}]/[userGuildId=${userGuild.id}]/[messageId=${x.id}]`);
-        const ret = {...x} as TicketMessageTimelineItem;
+        const ret = x as TicketMessageTimelineItem;
         if(!users.includes(x.discordUserId)) {
           logger.trace(`Adding user [discordUserId=${x.discordUserId}] to user fetch array`);
           users.push(x.discordUserId);
-        }
-        if(x.discordUserId !== userGuild.discordUserId){
-          logger.trace(`Setting side=${SideEnum.Right} for [messageId=${x.id}]`);
-          ret.side = SideEnum.Right;
-        } else {
-          logger.trace(`Setting side=${SideEnum.Left} for [messageId=${x.id}]`);
-          ret.side = SideEnum.Left;
         }
   
         return ret;

@@ -39,6 +39,10 @@ server
     origin: '*',
     methods: '*',
   });
+  await server.register(require('@fastify/static'), {
+    root: path.join(config.fileStore),
+    prefix: '/public/', // optional: default '/'
+  })
   logger.info('Setting up NATS subscription');
   await require('./lib/nats');
   logger.info('Finished building NATS subscriptions');
@@ -48,5 +52,5 @@ server
   server.register(autoload, {
     dir: path.join(path.resolve(), 'src', 'lib', 'routes')
   });
-  server.listen({port: Number(config.port)});
+  server.listen({host: config.host, port: Number(config.port)});
 })();

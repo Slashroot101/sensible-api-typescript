@@ -62,7 +62,8 @@ export default async (err: NatsError | null, msg: Msg): Promise<void> => {
        }
       );
     }
-
+    const guild = await database.ticketMessage.findFirst({where: {id: ticketMessage.id}, include: {ticket: {include: {userGuild: true}}}});
+    socket.to(guild?.ticket!.userGuild!.discordGuildId!.toString()!).emit(SocketEvents.TicketMessageCreated, ticketMessage);
     return;
   }
 

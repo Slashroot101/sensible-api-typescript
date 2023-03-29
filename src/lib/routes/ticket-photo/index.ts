@@ -18,7 +18,7 @@ export default function(fastify: FastifyInstance, opts: FastifyPluginOptions, do
     logger.trace(`Writing image to fileStore for ${req.body.fileName} and [ticketMessageId=${req.body.ticketMessageId}]`);
     await writeFile(`${fileStore}/${req.body.fileName}`, image);
     logger.trace(`Completed file write for ${req.body.fileName} and [ticketMessageId=${req.body.ticketMessageId}], proceeding to datbaase create.`);
-    const photo = database.photoMessage.create({data: {hash: req.body.hash, fileName: req.body.fileName, size: req.body.size, ticketMessageId: req.body.ticketMessageId}});
+    const photo = await database.photoMessage.create({data: {hash: req.body.hash, fileName: req.body.fileName, size: req.body.size, ticketMessageId: req.body.ticketMessageId}});
     logger.trace(`Completed database write for ${req.body.fileName} and [ticketMessageId=${req.body.ticketMessageId}], returning response`);
     socket.emit(SocketEvents.TicketPhotoCreated, photo);
     return {ticketPhoto: photo};
